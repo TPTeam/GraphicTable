@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+	<head>
+
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<title>Graphic Table DEMO</title>
+		<link rel="stylesheet" media="screen" href="stylesheets/main.css">
+		<link rel="shortcut icon" type="image/png" href="images/favicon.png">
+
+		<script src="http://code.jquery.com/jquery-1.9.0.min.js"></script>
+		<script type="text/javascript" src="javascripts/pixi.js"></script>
+		<script type="text/javascript" src="javascripts/EventTarget.js"></script>
+		<script type="text/javascript" src="javascripts/GraphicContainer.js"></script>
+		<script type="text/javascript" src="javascripts/GraphicTable.js"></script>
+		
+	</head>
+	<body>
+		<script type="text/javascript" charset="utf-8">
+			var gt;
+			$(document).ready(function() {
+
+				var _w = $('#container').width();
+				var _h = $('#container').height();
+
+				gt = new GraphicTable(_w, _h, 6, 4, 0);
+
+				gt.loadTextures({
+					'full' : "images/yes.png",
+					'empty' : "images/no.png"
+				}, function(graphic_container) {
+
+					$('#container').append(gt.renderer.view);
+
+					for ( var c = 0; c <= gt.gridSize.columns; c += 1) {
+						for ( var r = 0; r <= gt.gridSize.rows; r += 1) {
+							emptyCell(c, r);
+						}
+					}
+
+					gt.animate();
+
+					var backColor = 0x2f2e2f;
+					var back = new PIXI.Graphics();
+					var lineWidth = gt.foreSize.width / (8 * gt.gridSize.columns);
+					back.lineStyle(lineWidth, backColor);
+					back.drawRect(0, 0, gt.foreSize.width, gt.foreSize.height);
+
+					var h_spacing = gt.foreSize.width / gt.gridSize.columns;
+					var v_spacing = gt.foreSize.height / gt.gridSize.rows;
+
+					var line = new PIXI.Graphics();
+					line.lineStyle(lineWidth / 4, backColor);
+					for ( var c = 1; c < gt.gridSize.columns; c += 1) {
+						line.moveTo(h_spacing * c, 0);
+						line.lineTo(h_spacing * c, gt.foreSize.height);
+					}
+					for ( var r = 1; r < gt.gridSize.rows; r += 1) {
+						line.moveTo(0, v_spacing * r);
+						line.lineTo(gt.foreSize.width, v_spacing * r);
+					}
+					gt.backgroundContainer.addChild(back);
+					gt.backgroundContainer.addChild(line);
+
+					gt.on('mouseleave', function(e) {
+						$('#tooltip').hide();
+					})
+				})
+
+				function emptyCell(c, r) {
+					var ctb = gt.setCellContent(c, r, 'empty', false);
+					if (ctb !== undefined) {
+
+						gt.bindEventToObj('mouseover', ctb, function(data) {
+							var gPos = data.global;
+
+							var shift_l = (gPos.x > gt.size.width) ? (-1 * gt.cellSize.width / 2) : (gt.cellSize.width / 2);
+							var shift_t = (gPos.y < gt.size.height) ? (gt.cellSize.height / 2) : (-1 * gt.cellSize.height / 2);
+
+							var _pos = gt.getTablePositionFromPixel(data.global);
+
+							var cTop = $(gt.renderer.view).position().top;
+							var cLeft = $(gt.renderer.view).position().left;
+
+							$('#tooltip').html("position " + _pos.col + "," + _pos.row + " is empty").css({
+								left : gPos.x + cLeft,
+								top : gPos.y + shift_t + cTop
+							}).show();
+						})
+
+						gt.bindEventToObj('click', ctb, function(data) {
+							var _pos = gt.getTablePositionFromPixel(data.global);
+							fillCell(_pos.col, _pos.row);
+						})
+
+					} else {
+						console.warn("CageSelector: this.setCellContent() returned undefined sprite. c: ", c, " r: ", " empty");
+					}
+				}
+
+				function fillCell(c, r) {
+					var ctb = gt.setCellContent(c, r, 'full', false);
+					if (ctb !== undefined) {
+
+						gt.bindEventToObj('mouseover', ctb, function(data) {
+							var gPos = data.global;
+
+							var shift_l = (gPos.x > gt.size.width) ? (-1 * gt.cellSize.width / 2) : (gt.cellSize.width / 2);
+							var shift_t = (gPos.y < gt.size.height) ? (gt.cellSize.height / 2) : (-1 * gt.cellSize.height / 2);
+
+							var _pos = gt.getTablePositionFromPixel(data.global);
+
+							var cTop = $(gt.renderer.view).position().top;
+							var cLeft = $(gt.renderer.view).position().left;
+
+							$('#tooltip').html("position " + _pos.col + "," + _pos.row + " is filled").css({
+								left : gPos.x + cLeft,
+								top : gPos.y + shift_t + cTop
+							}).show();
+						})
+
+						gt.bindEventToObj('click', ctb, function(data) {
+							var _pos = gt.getTablePositionFromPixel(data.global);
+							emptyCell(_pos.col, _pos.row);
+						})
+
+					} else {
+						console.warn("CageSelector: this.setCellContent() returned undefined sprite. c: ", c, " r: ", " empty");
+					}
+				}
+
+			})
+		</script>
+
+		<div id="container" style="margin:auto;width:80%; height: 100%;"></div>
+		<span id="tooltip">tooltip</span>
+	</body>
+</html>
