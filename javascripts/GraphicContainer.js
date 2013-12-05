@@ -74,8 +74,9 @@ var GraphicContainer = {};
 			});
 			that.flags.isMouseIn = true;
 		})
-	}
 
+//		this.app = StatesKeeper.readState('application')
+	}
 	// constructor
 	GraphicContainer.prototype = Object.create(EventTarget.prototype);
 	GraphicContainer.prototype.constructor = GraphicContainer;
@@ -90,7 +91,6 @@ var GraphicContainer = {};
 		}
 		return removed;
 	}
-
 	/**
 	 * Add event listener to specified object's type
 	 * 
@@ -103,6 +103,7 @@ var GraphicContainer = {};
 	 *            {Function} Callback
 	 */
 	GraphicContainer.prototype.bindEventToObjType = function(evt, objType, func) {
+
 		// multiple events
 		if (this.mobEvt[evt] !== undefined && this.mobEvt[evt].length > 0) {
 			that = this;
@@ -120,7 +121,6 @@ var GraphicContainer = {};
 		}
 
 	}
-
 	/**
 	 * Add event listener to specified object
 	 * 
@@ -143,7 +143,6 @@ var GraphicContainer = {};
 		}
 		obj[evt] = func;
 	}
-
 	/**
 	 * Remove event listener from specified object
 	 * 
@@ -156,7 +155,6 @@ var GraphicContainer = {};
 	GraphicContainer.prototype.unbindEventFromObj = function(obj, evt) {
 		this.bindEventToObj(evt, obj, undefined);
 	}
-
 	/**
 	 * Load provided images asyncronously, and save internally with provided
 	 * labels. When done, run callback.
@@ -181,7 +179,6 @@ var GraphicContainer = {};
 		loader.load();
 		return (this);
 	}
-
 	/**
 	 * Returns a new PIXI.Texture with the provided image's label as source.
 	 * 
@@ -192,38 +189,26 @@ var GraphicContainer = {};
 	GraphicContainer.prototype.getTexture = function(name) {
 		return (new PIXI.Texture.fromImage(this.textures[name]));
 	}
-
 	/**
 	 * Looks for [application].onAnimate method and add its rendering callback.
-	 * If not found, will use .
+	 * If not found, throws an error.
 	 * 
 	 * @method animate
-	 * @param app
-	 *            {Object} The application module to ask onAnimate() for, to be
-	 *            used in web apps.
 	 */
-	GraphicContainer.prototype.animate = function(app) {
-
-		var that = this;
-
-		function doAnimate() {
+	GraphicContainer.prototype.animate = function() {
+				
+		function render() {
 			that.renderer.render(that.stage);
-			requestAnimationFrame(doAnimate);
 		}
+		
+		function animate() {
+			requestAnimationFrame(animate);			
+			render();
+		}
+		
+		animate();
 
-		if (app !== undefined) {
-			if (typeof app.onAnimate !== 'function') {
-				console.warn("GraphicContainer: couldn't find onAnimate method in application, using requestAnimationFrame");
-				doAnimate();
-			} else {
-				app.onAnimate(doAnimate);
-			}
-		} else {
-			console.warn("GraphicContainer: couldn't retrieve application from StatesKeeper, using requestAnimationFrame.");
-			doAnimate();
-		}
 	}
-
 	/**
 	 * Resizes the stage, renderer and redefines hitArea
 	 * 
@@ -248,4 +233,5 @@ var GraphicContainer = {};
 		this.stage.hitArea = new PIXI.Rectangle(0, 0, this.size.width, this.size.height);
 
 	}
+	
 })()
