@@ -8,6 +8,7 @@
 		<link rel="shortcut icon" type="image/png" href="images/favicon.png">
 
 		<script src="http://code.jquery.com/jquery-1.9.0.min.js"></script>
+		<script type="text/javascript" src="javascripts/TPUtils.js"></script>
 		<script type="text/javascript" src="javascripts/pixi.js"></script>
 		<script type="text/javascript" src="javascripts/EventTarget.js"></script>
 		<script type="text/javascript" src="javascripts/GraphicContainer.js"></script>
@@ -67,7 +68,7 @@
 				})
 
 				function emptyCell(c, r) {
-					var ctb = gt.setCellContent(c, r, 'empty', false);
+					var ctb = gt.setCellContent(0, c, r, 'empty', false);
 					if (ctb !== undefined) {
 
 						gt.bindEventToObj('mouseover', ctb, function(data) {
@@ -98,7 +99,7 @@
 				}
 
 				function fillCell(c, r) {
-					var ctb = gt.setCellContent(c, r, 'full', false);
+					var ctb = gt.setCellContent(0, c, r, 'full', false);
 					if (ctb !== undefined) {
 
 						gt.bindEventToObj('mouseover', ctb, function(data) {

@@ -164,7 +164,7 @@ var GraphicTable = {};
 
 	GraphicTable.prototype.goToPage = function(index) {
 
-		if (index < this.pages.length || index === undefined) {
+		if (index < this.pages.length && typeof index === 'number') {
 
 			if (this.container !== undefined && this.container.parent === this.stage) {
 				this.container.visible = false;
@@ -187,19 +187,15 @@ var GraphicTable = {};
 
 	GraphicTable.prototype.isIn = function(point) {
 
-		if ((point.x < (that.cellSize.width / 2)) || (Math.abs(point.x - that.size.width) < (that.cellSize.width / 2))
-				|| (point.y < (that.cellSize.height / 2)) || (Math.abs(point.y - that.size.height) < (that.cellSize.width / 2))) {
-			return false;
-		} else {
-			return true;
-		}
+		return !((point.x < (that.cellSize.width / 2)) || (Math.abs(point.x - that.size.width) < (that.cellSize.width / 2))
+			|| (point.y < (that.cellSize.height / 2)) || (Math.abs(point.y - that.size.height) < (that.cellSize.width / 2)));
 
 	}
 
 	GraphicTable.prototype.repositionAndResizeSprite = function(sprite, col, row) {
 		sprite.position = new PIXI.Point((this.outerCellSize.width * col) + (this.outerCellSize.width / 2)
-				+ ((this.size.width - this.foreSize.width) / 2), (this.outerCellSize.height * row)
-				+ (this.outerCellSize.height / 2) + ((this.size.height - this.foreSize.height) / 2));
+			+ ((this.size.width - this.foreSize.width) / 2), (this.outerCellSize.height * row) + (this.outerCellSize.height / 2)
+			+ ((this.size.height - this.foreSize.height) / 2));
 		var ratio = sprite.width / sprite.height;
 
 		if (sprite.width > sprite.height) {
@@ -211,86 +207,47 @@ var GraphicTable = {};
 		}
 	}
 
-	GraphicTable.prototype.setCellContent = function(col, row, img, content) {
+	GraphicTable.prototype.setCellContent = function(pageIndex, col, row, img, content) {
 
-		if (this.pages.length === 1) {
-			var page = this.pages[0];
-		} else {
-			var page = this.pages[Math.floor(col / this.gridSize.columns)];
-			col = col % this.gridSize.columns;
-		}
+		var sprite, elm, pixiElement, container;
+		var page = this.pages[pageIndex];
 
 		if ((page !== undefined) && (row <= this.gridSize.rows)) {
 
-			var sprite;
+			// just one sprite
+			sprite = new PIXI.Sprite(this.getTexture(img));
+			sprite.anchor = new PIXI.Point(0.5, 0.5);
+			this.repositionAndResizeSprite(sprite, col, row);
+			sprite.setInteractive(true);
 
-			if (typeof img === 'string') {
-				// just one sprite
-				sprite = new PIXI.Sprite(this.getTexture(img));
-				sprite.anchor = new PIXI.Point(0.5, 0.5);
+			elm = page.grid[col][row];
+			pixiElement = elm.pixiElement;
+			container = page.container;
 
-				this.repositionAndResizeSprite(sprite, col, row);
-
-				sprite.setInteractive(true);
-				var pe = page.grid[col][row].pixiElement;
-
-				// if cell already has an image and is child of the container,
-				// hide it and remove
-				if ((pe !== undefined) && (pe.parent === this.container)) {
-					pe.visible = false;
-					page.container.removeChild(pe);
-				}
-
-				if ($.isEmptyObject(content) || content === false) {
-					page.grid[col][row].content = {};
-					page.grid[col][row].isEmpty = true;
-				} else {
-					this.objects.cells.push(page.grid[col][row]);
-					page.grid[col][row].content = content;
-					page.grid[col][row].isEmpty = false;
-				}
-				page.grid[col][row].pixiElement = sprite;
-				page.grid[col][row].textLabel = img;
-				page.container.addChild(sprite);
-
-			} else {
-				// 'img' is a valid DisplayObjectContainer
-				if (img) {
-					img.pivot = new PIXI.Point(0.5, 0.5);
-					this.repositionAndResizeSprite(img, col, row);
-					img.setInteractive(true);
-					var pe = page.grid[col][row].pixiElement;
-					// if cell already has an image and is child of the
-					// container,
-					// hide it and remove
-					if ((pe !== undefined) && (pe.parent === this.container)) {
-						pe.visible = false;
-						page.container.removeChild(pe);
-					}
-					if ($.isEmptyObject(content) || content === false) {
-						page.grid[col][row].content = {};
-						page.grid[col][row].isEmpty = true;
-					} else {
-						this.objects.cells.push(page.grid[col][row]);
-						page.grid[col][row].content = content;
-						page.grid[col][row].isEmpty = false;
-					}
-					page.grid[col][row].pixiElement = img;
-					console.log("AGGIUNGO -> " + col + " x " + row + " con ", page.grid[col][row].pixiElement);
-					page.container.addChild(img);
-					sprite = img;
-				} else {
-					// nothing, don't draw
-					console.error("GraphicTable: couldn't find valid graphic object. ", img);
-				}
+			// if cell already has an image and is child of the container,
+			// hide it and remove
+			if ((pixiElement !== undefined) && (pixiElement.parent === container)) {
+				container.removeChild(pixiElement);
 			}
+
+			if (content === false) {
+				elm.content = {};
+				elm.isEmpty = true;
+			} else {
+				this.objects.cells.push(elm);
+				elm.content = content;
+				elm.isEmpty = false;
+			}
+
+			elm.pixiElement = sprite;
+			elm.textLabel = img;
+			container.addChild(sprite);
 
 			return (sprite);
 
 		} else {
 
-			console.warn("GraphicTable error : Trying setCellContent() to illegal position. Col: ", col, " Row: ", row, " Page ",
-					page);
+			console.warn("GraphicTable error : setCellContent() with illegal position. Col: %s Row: %s Page %s", col, row, page);
 
 		}
 
@@ -300,41 +257,40 @@ var GraphicTable = {};
 
 		var stepX = this.foreSize.width / this.gridSize.columns;
 		var stepY = this.foreSize.height / this.gridSize.rows;
-		var col = (Math.floor(point.x / stepX) * (this.active.page + 1));
+
+		var col = Math.floor(point.x / stepX);
 		var row = Math.floor(point.y / stepY);
 
-		// filter bad values
-		if (row > this.gridSize.row) {
-			return false;
-		} else {
-			return ({
-				col : col,
-				row : row
-			})
-		}
+		return ({
+			col : col,
+			row : row
+		})
 
 	}
 
 	GraphicTable.prototype.getPixelFromTablePosition = function(c, r) {
+
 		var stepX = this.foreSize.width / this.gridSize.columns;
 		var stepY = this.foreSize.height / this.gridSize.rows;
+
 		c = c % this.gridSize.columns;
+
 		var x = (c * stepX) + (this.cellSize.width / 2);
 		var y = (r * stepX) + (this.cellSize.height / 2);
+
 		return ({
 			x : x,
 			y : y
 		})
+
 	}
 
 	GraphicTable.prototype.redraw = function(callback) {
-		// console.log("REDRAWING: "+this.gridSize.columns+" x "+r);
-		for ( var c = 0; c < this.gridSize.columns; c += 1) {
-			for ( var r = 0; r < this.gridSize.rows; r += 1) {
-				console.log("ridisegno -> " + c + " x " + r + " con ", this.grid[c][r].pixiElement);
-				this.setCellContent(c, r, this.grid[c][r].pixiElement, this.grid[c][r].content);
-			}
-		}
+		var that = this;
+		$.fn.tpUtils().findIn2DArray(this.pages[pi].grid, function(elm, col, row) {
+			that.setCellContent(that.active.page, col, row, elm.pixiElement, elm.content);
+		})
+
 		if (callback !== undefined) {
 			callback.bind(this)();
 		}
@@ -345,21 +301,22 @@ var GraphicTable = {};
 		this.resizeGraphicContainer(width, height);
 		this.setTableMarginPercent(this.tableMarginPercent.horizontal, this.tableMarginPercent.vertical);
 
+		var that = this;
+
 		// redraw cells
 		for ( var p = 0; p < this.pages.length; p += 1) {
 			var grid = this.pages[p].grid;
-			for ( var col = 0; col <= this.gridSize.columns; col += 1) {
-				for ( var row = 0; row <= this.gridSize.rows; row += 1) {
-					var sprite = grid[col][row].pixiElement;
-					if (sprite !== undefined) {
-						this.repositionAndResizeSprite(sprite, col, row);
-					} else {
-						console.error("GraphicTable: undefined graphic element found at ", col, row);
-					}
-				}
-			}
-		}
 
+			$.fn.tpUtils().findIn2DArray(this.pages[pi].grid, function(elm, col, row) {
+
+				var sprite = elm.pixiElement;
+				if (sprite !== undefined) {
+					that.repositionAndResizeSprite(sprite, col, row);
+				} else {
+					console.error("GraphicTable: undefined graphic element found at ", col, row);
+				}
+			})
+		}
 	}
 
 	GraphicTable.prototype.recalculateCellSize = function() {
@@ -368,7 +325,7 @@ var GraphicTable = {};
 		var _ch = this.foreSize.height / this.gridSize.rows;
 		if (typeof _cw !== 'number' || typeof _ch !== 'number') {
 			console.warn("GraphicTable warning : foreSize or gridSize is NaN. Foresize: ", this.foresize, " Gridsize: ",
-					this.gridSize);
+				this.gridSize);
 		} else {
 			this.outerCellSize = {
 				width : _cw,
